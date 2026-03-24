@@ -34,7 +34,7 @@ export default function App() {
     <AuthProvider>
       <ProductProvider>
         <CartProvider>
-          <Router>
+          <Router basename={import.meta.env.BASE_URL}>
             <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
               <Navbar />
               <main className="flex-grow">
