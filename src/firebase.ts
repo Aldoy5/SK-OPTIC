@@ -2,12 +2,12 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, Timestamp, getDocFromServer } from 'firebase/firestore';
 
-// Use environment variables for Firebase configuration with sk-optic as fallback
+// Use environment variables for Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || "AIzaSyAeeVuA_oDYQ3e2cygzY5HgaXGo9jsV-LY",
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "sk-optic.firebaseapp.com",
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || "sk-optic",
-  appId: process.env.VITE_FIREBASE_APP_ID || "1:583419869374:web:635c550f090593bd5ac6ef",
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
   firestoreDatabaseId: process.env.VITE_FIREBASE_DATABASE_ID || "(default)"
 };
 
