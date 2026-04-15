@@ -13,10 +13,10 @@ Ce projet est configuré pour être déployé automatiquement sur GitHub Pages v
 3.  **Configurez les Secrets GitHub** :
     Allez dans **Settings > Secrets and variables > Actions** de votre dépôt GitHub et ajoutez les secrets suivants :
     *   `GEMINI_API_KEY` : Votre clé API Google AI Studio.
-    *   `VITE_FIREBASE_API_KEY` : `AIzaSyAeeVuA_oDYQ3e2cygzY5HgaXGo9jsV-LY`
-    *   `VITE_FIREBASE_AUTH_DOMAIN` : `sk-optic.firebaseapp.com`
-    *   `VITE_FIREBASE_PROJECT_ID` : `sk-optic`
-    *   `VITE_FIREBASE_APP_ID` : `1:583419869374:web:635c550f090593bd5ac6ef`
+    *   `VITE_FIREBASE_API_KEY` :
+    *   `VITE_FIREBASE_AUTH_DOMAIN` : 
+    *   `VITE_FIREBASE_PROJECT_ID` : 
+    *   `VITE_FIREBASE_APP_ID` : 
     *   `VITE_FIREBASE_DATABASE_ID` : `(default)`
 
 ### 🛡️ Sécurité & Restrictions
