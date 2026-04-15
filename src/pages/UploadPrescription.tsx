@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2, Eye, ArrowRight } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2, Eye, ArrowRight, CalendarDays } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 
 interface PrescriptionData {
@@ -271,13 +271,23 @@ export function UploadPrescription() {
               </div>
             </div>
 
-            <button
-              onClick={() => navigate(`/shop?category=${result.categorieRecommandee}`)}
-              className="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-colors"
-            >
-              Voir les montures pour {result.categorieRecommandee}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => navigate('/appointment')}
+                className="w-full flex items-center justify-center py-4 px-4 border border-purple-200 rounded-md shadow-sm text-lg font-medium text-purple-800 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-700 transition-colors"
+              >
+                Prendre rendez-vous
+                <CalendarDays className="ml-2 h-5 w-5" />
+              </button>
+
+              <button
+                onClick={() => navigate(`/shop?category=${result.categorieRecommandee}`)}
+                className="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-colors"
+              >
+                Voir les montures
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </button>
+            </div>
             
             <button
               onClick={() => {
