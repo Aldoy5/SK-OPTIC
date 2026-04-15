@@ -12,7 +12,9 @@ Ce projet est configuré pour être déployé automatiquement sur GitHub Pages v
 2.  **Exportez ce projet** vers votre dépôt GitHub (via le menu "Settings" de Google AI Studio).
 3.  **Configurez les Secrets GitHub** :
     Allez dans **Settings > Secrets and variables > Actions** de votre dépôt GitHub et ajoutez les secrets suivants :
-    *   `GEMINI_API_KEY` : Votre clé API Google AI Studio.
+    *   `GEMINI_API_KEY` : Votre clé API Google AI Studio (compatibilité historique).
+    *   `VITE_GEMINI_API_KEY` : Votre clé API Google AI Studio (recommandé côté front).
+    *   `VITE_GEMINI_MODEL` : Modèle Gemini à utiliser (ex: `gemini-2.5-flash`).
     *   `VITE_FIREBASE_API_KEY` :
     *   `VITE_FIREBASE_AUTH_DOMAIN` : 
     *   `VITE_FIREBASE_PROJECT_ID` : 
