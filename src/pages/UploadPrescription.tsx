@@ -17,6 +17,9 @@ export function UploadPrescription() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<PrescriptionData | null>(null);
   const navigate = useNavigate();
+  const geminiApiKey =
+    import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  const geminiModel = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -34,6 +37,11 @@ export function UploadPrescription() {
 
   const handleUpload = async () => {
     if (!file) return;
+    if (!geminiApiKey) {
+      setError("La clé API Gemini est manquante. Ajoutez VITE_GEMINI_API_KEY dans votre configuration.");
+      return;
+    }
+
     setIsAnalyzing(true);
     setError('');
 
@@ -44,10 +52,10 @@ export function UploadPrescription() {
         try {
           const base64Data = (reader.result as string).split(',')[1];
           
-          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+          const ai = new GoogleGenAI({ apiKey: geminiApiKey });
           
           const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: geminiModel,
             contents: {
               parts: [
                 {
@@ -101,16 +109,24 @@ export function UploadPrescription() {
 
           const resultText = response.text;
           if (resultText) {
-            const parsedResult = JSON.parse(resultText) as PrescriptionData;
+            const sanitizedText = resultText
+              .replace(/^```json\s*/i, '')
+              .replace(/```$/i, '')
+              .trim();
+            const parsedResult = JSON.parse(sanitizedText) as PrescriptionData;
             if (!parsedResult.estOrdonnanceValide) {
               setError(parsedResult.explication || "Le document fourni ne semble pas être une ordonnance valide.");
             } else {
               setResult(parsedResult);
             }
+          } else {
+            setError("L'IA n'a pas renvoyé de résultat exploitable.");
           }
-        } catch (err) {
+        } catch (err: unknown) {
           console.error(err);
-          setError("Une erreur s'est produite lors de l'analyse par l'IA.");
+          const errorMessage =
+            err instanceof Error ? err.message : "Une erreur s'est produite lors de l'analyse par l'IA.";
+          setError(`Analyse IA échouée : ${errorMessage}`);
         } finally {
           setIsAnalyzing(false);
         }
