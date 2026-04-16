@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ShoppingCart, Filter, Tag, ShieldCheck } from 'lucide-react';
-import { useProducts } from '../context/ProductContext';
+import { PRODUCT_CATEGORIES, PRODUCT_GENDERS, useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 
 export function Shop() {
@@ -12,12 +12,18 @@ export function Shop() {
   const initialCategory = queryParams.get('category') || 'All';
 
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedGender, setSelectedGender] = useState('All');
 
-  const categories = ['All', 'Myopie', 'Presbytie', 'Astigmatisme', 'Hypermétropie', 'Solaire', 'Entretien'];
+  const categories = ['All', ...PRODUCT_CATEGORIES];
+  const genders = ['All', ...PRODUCT_GENDERS];
 
-  const filteredProducts = selectedCategory === 'All' 
-    ? products 
-    : products.filter(p => p.category === selectedCategory);
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesCategory = selectedCategory === 'All' || product.categories.includes(selectedCategory);
+      const matchesGender = selectedGender === 'All' || product.genders.includes(selectedGender);
+      return matchesCategory && matchesGender;
+    });
+  }, [products, selectedCategory, selectedGender]);
 
   if (isLoading) {
     return (
@@ -30,7 +36,6 @@ export function Shop() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Promotional Banner */}
       <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 bg-gradient-to-r from-purple-700 to-purple-800 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between overflow-hidden relative">
           <div className="relative z-10">
@@ -56,23 +61,38 @@ export function Shop() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900">Notre Collection</h1>
           <p className="mt-2 text-gray-500">Trouvez la monture parfaite pour votre style et votre vue.</p>
         </div>
-        
-        <div className="mt-4 md:mt-0 flex items-center bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-          <Filter className="h-5 w-5 text-gray-400 ml-2 mr-1" />
-          <select 
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 py-2 pl-2 pr-8 cursor-pointer"
-          >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat === 'All' ? 'Toutes les catégories' : cat}</option>
-            ))}
-          </select>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1 shadow-sm w-full sm:w-auto">
+            <Filter className="h-5 w-5 text-gray-400 ml-2 mr-1" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 py-2 pl-2 pr-8 cursor-pointer w-full"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat === 'All' ? 'Toutes les catégories' : cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1 shadow-sm w-full sm:w-auto">
+            <Filter className="h-5 w-5 text-gray-400 ml-2 mr-1" />
+            <select
+              value={selectedGender}
+              onChange={(e) => setSelectedGender(e.target.value)}
+              className="bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-700 py-2 pl-2 pr-8 cursor-pointer w-full"
+            >
+              {genders.map(gender => (
+                <option key={gender} value={gender}>{gender === 'All' ? 'Tous les genres' : gender}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -91,15 +111,18 @@ export function Shop() {
         {filteredProducts.map((product) => (
           <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col">
             <Link to={`/product/${product.id}`} className="relative aspect-w-4 aspect-h-3 bg-gray-100 overflow-hidden block">
-              <img 
-                src={product.image} 
-                alt={product.name} 
+              <img
+                src={product.image}
+                alt={product.name}
                 className="object-cover w-full h-64 group-hover:scale-105 transition-transform duration-500"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute top-4 right-4">
+              <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white text-gray-800 shadow-sm">
-                  {product.category}
+                  {product.categories.join(', ')}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 shadow-sm border border-purple-100">
+                  {product.genders.join(', ')}
                 </span>
               </div>
             </Link>
@@ -126,15 +149,18 @@ export function Shop() {
           </div>
         ))}
       </div>
-      
+
       {filteredProducts.length === 0 && (
         <div className="text-center py-20">
-          <p className="text-gray-500 text-lg">Aucun produit trouvé dans cette catégorie.</p>
-          <button 
-            onClick={() => setSelectedCategory('All')}
+          <p className="text-gray-500 text-lg">Aucun produit trouvé pour ces filtres.</p>
+          <button
+            onClick={() => {
+              setSelectedCategory('All');
+              setSelectedGender('All');
+            }}
             className="mt-4 text-purple-700 font-medium hover:underline"
           >
-            Voir tous les produits
+            Réinitialiser les filtres
           </button>
         </div>
       )}

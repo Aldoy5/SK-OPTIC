@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X, Save, AlertTriangle, Package, ShoppingCart as CartIcon, CheckCircle, Clock, Truck, Ban } from 'lucide-react';
-import { useProducts, Product } from '../context/ProductContext';
+import { useProducts, Product, PRODUCT_CATEGORIES, PRODUCT_GENDERS } from '../context/ProductContext';
 import { db, OperationType, handleFirestoreError } from '../firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
@@ -27,7 +27,8 @@ export function Admin() {
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   
-  const categories = ['Myopie', 'Presbytie', 'Astigmatisme', 'Hypermétropie', 'Solaire', 'Entretien'];
+  const categories = [...PRODUCT_CATEGORIES];
+  const genders = [...PRODUCT_GENDERS];
 
   useEffect(() => {
     setIsOrdersLoading(true);
@@ -84,13 +85,19 @@ export function Admin() {
 
   const handleOpenEdit = (product?: Product) => {
     if (product) {
-      setCurrentProduct(product);
+      setCurrentProduct({
+        ...product,
+        categories: product.categories?.length ? product.categories : [product.category],
+        genders: product.genders?.length ? product.genders : genders
+      });
     } else {
       setCurrentProduct({
         name: '',
         price: 0,
         image: '',
         category: categories[0],
+        categories: [categories[0]],
+        genders,
         description: ''
       });
     }
@@ -104,10 +111,20 @@ export function Admin() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!currentProduct.categories?.length) {
+      alert('Veuillez sélectionner au moins une catégorie.');
+      return;
+    }
+
+    if (!currentProduct.genders?.length) {
+      alert('Veuillez sélectionner au moins un genre.');
+      return;
+    }
     if (currentProduct.id) {
-      updateProduct(currentProduct.id, currentProduct as Omit<Product, 'id'>);
+      updateProduct(currentProduct.id, { ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
     } else {
-      addProduct(currentProduct as Omit<Product, 'id'>);
+      addProduct({ ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
     }
     handleCloseEdit();
   };
@@ -230,17 +247,63 @@ export function Admin() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                          <select
-                            required
-                            value={currentProduct.category || categories[0]}
-                            onChange={e => setCurrentProduct({...currentProduct, category: e.target.value})}
-                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
-                          >
-                            {categories.map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Catégories (choix multiple)</label>
+                          <div className="grid grid-cols-2 gap-2 border border-gray-200 rounded-lg p-3">
+                            {categories.map(cat => {
+                              const currentCategories = currentProduct.categories || [];
+                              const checked = currentCategories.includes(cat);
+                              return (
+                                <label key={cat} className="flex items-center gap-2 text-sm text-gray-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => {
+                                      const updatedCategories = checked
+                                        ? currentCategories.filter(item => item !== cat)
+                                        : [...currentCategories, cat];
+                                      setCurrentProduct({
+                                        ...currentProduct,
+                                        categories: updatedCategories,
+                                        category: updatedCategories[0] || categories[0]
+                                      });
+                                    }}
+                                    className="rounded border-gray-300 text-purple-700 focus:ring-purple-700"
+                                  />
+                                  {cat}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-1 text-xs text-gray-500">Sélectionnez au moins une catégorie.</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Genres (choix multiple)</label>
+                          <div className="grid grid-cols-2 gap-2 border border-gray-200 rounded-lg p-3">
+                            {genders.map(gender => {
+                              const currentGenders = currentProduct.genders || [];
+                              const checked = currentGenders.includes(gender);
+                              return (
+                                <label key={gender} className="flex items-center gap-2 text-sm text-gray-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => {
+                                      const updatedGenders = checked
+                                        ? currentGenders.filter(item => item !== gender)
+                                        : [...currentGenders, gender];
+                                      setCurrentProduct({
+                                        ...currentProduct,
+                                        genders: updatedGenders
+                                      });
+                                    }}
+                                    className="rounded border-gray-300 text-purple-700 focus:ring-purple-700"
+                                  />
+                                  {gender}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-1 text-xs text-gray-500">Sélectionnez un ou plusieurs genres.</p>
                         </div>
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -312,6 +375,7 @@ export function Admin() {
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Produit</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Catégorie</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Genres</th>
                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Prix</th>
                         <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
@@ -332,7 +396,12 @@ export function Admin() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                              {product.category}
+                              {product.categories.join(', ')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                              {product.genders.join(', ')}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -358,7 +427,7 @@ export function Admin() {
                       ))}
                       {products.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                          <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                             Aucun produit dans le catalogue.
                           </td>
                         </tr>
