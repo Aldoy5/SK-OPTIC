@@ -20,6 +20,8 @@ Ce projet est configuré pour être déployé automatiquement sur GitHub Pages v
     *   `VITE_FIREBASE_PROJECT_ID` : 
     *   `VITE_FIREBASE_APP_ID` : 
     *   `VITE_FIREBASE_DATABASE_ID` : `(default)`
+    *   `VITE_TELEGRAM_BOT_TOKEN` : Le token de votre bot Telegram.
+    *   `VITE_TELEGRAM_CHAT_ID` : Votre Chat ID Telegram.
 
 ### 🛡️ Sécurité & Restrictions
 
