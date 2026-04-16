@@ -50,9 +50,22 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAllowedAdminEmail() {
+      return request.auth.token.email is string &&
+        request.auth.token.email.lower() in [
+          "alexachie14@gmail.com",
+          "amaniserge25@gmail.com"
+        ];
+    }
+
+    function isAllowedAdminUid() {
+      return request.auth.uid in [
+        "x3EYUOIZLhUOd8Hxa8rjsCrKtNe2"
+      ];
+    }
+
     function isAdmin() {
-      return isAuthenticated() &&
-        ((request.auth.token.email == "alexachie14@gmail.com" || request.auth.token.email == "amaniserge25@gmail.com") && request.auth.token.email_verified == true);
+      return isAuthenticated() && (isAllowedAdminEmail() || isAllowedAdminUid());
     }
 
     function isValidProduct(data) {
