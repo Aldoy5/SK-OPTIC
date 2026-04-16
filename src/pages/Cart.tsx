@@ -6,7 +6,7 @@ import { db, OperationType, handleFirestoreError } from '../firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 export function Cart() {
-  const { items, removeFromCart, total, subtotal, discount, discountPercentage, clearCart } = useCart();
+  const { items, removeFromCart, updateQuantity, total, subtotal, discount, discountPercentage, appliedPromotion, clearCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [customerName, setCustomerName] = useState('');
@@ -33,6 +33,12 @@ export function Cart() {
         subtotal,
         discount,
         discountPercentage,
+        appliedPromotion: appliedPromotion ? {
+          id: appliedPromotion.id,
+          title: appliedPromotion.title,
+          type: appliedPromotion.type,
+          value: appliedPromotion.value
+        } : null,
         status: 'pending',
         createdAt: Timestamp.now()
       };
@@ -113,7 +119,27 @@ export function Cart() {
                   </div>
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center border border-gray-300 rounded-md">
-                      <span className="px-4 py-1 text-sm font-medium text-gray-700">Qté: {item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        className="px-3 py-1 text-gray-700 hover:bg-gray-100"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.quantity}
+                        onChange={(e) => updateQuantity(item.id, Number(e.target.value) || 1)}
+                        className="w-16 text-center py-1 border-x border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="px-3 py-1 text-gray-700 hover:bg-gray-100"
+                      >
+                        +
+                      </button>
                     </div>
                     <button
                       onClick={() => removeFromCart(item.id)}
@@ -134,10 +160,13 @@ export function Cart() {
               <p>{subtotal} FCFA</p>
             </div>
             {discount > 0 && (
-              <div className="flex justify-between text-sm font-medium text-green-600 mb-4">
+              <div className="flex justify-between text-sm font-medium text-green-600 mb-2">
                 <p>Remise ({discountPercentage}%)</p>
                 <p>-{discount} FCFA</p>
               </div>
+            )}
+            {appliedPromotion && (
+              <p className="text-xs text-green-700 mb-4">Promotion appliquée automatiquement : {appliedPromotion.title}</p>
             )}
             <div className="flex justify-between text-sm text-gray-500 mb-6">
               <p>Frais de livraison</p>

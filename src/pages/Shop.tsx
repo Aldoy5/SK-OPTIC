@@ -3,9 +3,11 @@ import { useLocation, Link } from 'react-router-dom';
 import { ShoppingCart, Filter, Tag, ShieldCheck } from 'lucide-react';
 import { PRODUCT_CATEGORIES, PRODUCT_GENDERS, useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { usePromotions } from '../context/PromotionContext';
 
 export function Shop() {
   const { addToCart } = useCart();
+  const { activePromotions } = usePromotions();
   const { products, isLoading } = useProducts();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -43,8 +45,12 @@ export function Shop() {
               <Tag className="w-5 h-5" />
               <span className="text-sm font-bold uppercase tracking-wider">Offres Spéciales</span>
             </div>
-            <h2 className="text-2xl font-bold mb-1">Offre Duo & Trio</h2>
-            <p className="text-purple-100 opacity-90">-15% pour 2 articles, -25% dès 3 articles !</p>
+            <h2 className="text-2xl font-bold mb-1">Offres en cours</h2>
+            <p className="text-purple-100 opacity-90">
+              {activePromotions.length > 0
+                ? activePromotions.map((promotion) => promotion.title).join(' • ')
+                : 'Aucune promotion active pour le moment.'}
+            </p>
           </div>
           <div className="hidden sm:block opacity-20 absolute -right-4 -bottom-4">
             <ShoppingCart className="w-48 h-48" />
