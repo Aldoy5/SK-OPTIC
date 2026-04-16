@@ -25,7 +25,7 @@ interface Order {
 interface Appointment {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone: string;
   date: string;
   time: string;
@@ -703,7 +703,7 @@ export function Admin() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <p><span className="font-semibold text-gray-900">Nom:</span> <span className="text-gray-700">{appointment.name}</span></p>
                       <p><span className="font-semibold text-gray-900">Téléphone:</span> <span className="text-gray-700">{appointment.phone}</span></p>
-                      <p><span className="font-semibold text-gray-900">Email:</span> <span className="text-gray-700">{appointment.email}</span></p>
+                      {appointment.email && (<p><span className="font-semibold text-gray-900">Email:</span> <span className="text-gray-700">{appointment.email}</span></p>)}
                       <p><span className="font-semibold text-gray-900">Motif:</span> <span className="text-gray-700">{appointment.reason}</span></p>
                       <p className="md:col-span-2"><span className="font-semibold text-gray-900">Créneau:</span> <span className="text-gray-700">{appointment.date} à {appointment.time}</span></p>
                     </div>
