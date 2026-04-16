@@ -3,12 +3,17 @@ import { db, OperationType, handleFirestoreError } from '../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
 import { products as initialProducts } from '../data/products';
 
+export const PRODUCT_CATEGORIES = ['Myopie', 'Presbytie', 'Astigmatisme', 'Hypermétropie', 'Solaire', 'Entretien'] as const;
+export const PRODUCT_GENDERS = ['Femme', 'Homme', 'Enfant'] as const;
+
 export interface Product {
   id: string;
   name: string;
   price: number;
   image: string;
   category: string;
+  categories: string[];
+  genders: string[];
   description: string;
 }
 
@@ -21,6 +26,29 @@ interface ProductContextType {
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
+
+const normalizeProduct = (rawProduct: Partial<Product> & { id: string }): Product => {
+  const categories = Array.isArray(rawProduct.categories) && rawProduct.categories.length > 0
+    ? rawProduct.categories
+    : rawProduct.category
+      ? [rawProduct.category]
+      : [PRODUCT_CATEGORIES[0]];
+
+  const genders = Array.isArray(rawProduct.genders) && rawProduct.genders.length > 0
+    ? rawProduct.genders
+    : PRODUCT_GENDERS;
+
+  return {
+    id: rawProduct.id,
+    name: rawProduct.name || '',
+    price: Number(rawProduct.price || 0),
+    image: rawProduct.image || '',
+    description: rawProduct.description || '',
+    categories,
+    genders,
+    category: categories[0]
+  };
+};
 
 export function ProductProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -44,10 +72,10 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
     const q = query(collection(db, 'products'), orderBy('name'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const productsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Product[];
+      const productsData = snapshot.docs.map(item => normalizeProduct({
+        id: item.id,
+        ...(item.data() as Partial<Product>)
+      }));
       setProducts(productsData);
       setIsLoading(false);
     }, (error) => {
@@ -59,7 +87,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
   const addProduct = async (product: Omit<Product, 'id'>) => {
     try {
-      await addDoc(collection(db, 'products'), product);
+      const payload = {
+        ...product,
+        category: product.categories[0] || PRODUCT_CATEGORIES[0]
+      };
+      await addDoc(collection(db, 'products'), payload);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'products');
     }
@@ -67,7 +99,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
   const updateProduct = async (id: string, updatedProduct: Omit<Product, 'id'>) => {
     try {
-      await updateDoc(doc(db, 'products', id), updatedProduct);
+      const payload = {
+        ...updatedProduct,
+        category: updatedProduct.categories[0] || PRODUCT_CATEGORIES[0]
+      };
+      await updateDoc(doc(db, 'products', id), payload);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
     }

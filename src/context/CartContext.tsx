@@ -6,6 +6,8 @@ export interface Product {
   price: number;
   image: string;
   category: string;
+  categories: string[];
+  genders: string[];
   description: string;
 }
 
@@ -33,7 +35,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        return prev.map(item => 
+        return prev.map(item =>
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
@@ -49,7 +51,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  
+
   let discountPercentage = 0;
   if (totalItems >= 3) {
     discountPercentage = 25;

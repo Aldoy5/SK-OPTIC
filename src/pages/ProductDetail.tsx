@@ -60,7 +60,13 @@ export function ProductDetail() {
             <div className="flex flex-col justify-center">
               <div className="mb-2">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                  {product.category}
+                  {product.categories.join(', ')}
+                </span>
+              </div>
+
+              <div className="mb-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                  Genres: {product.genders.join(', ')}
                 </span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
