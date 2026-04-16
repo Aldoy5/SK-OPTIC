@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, AlertTriangle, Package, ShoppingCart as CartIcon, CheckCircle, Clock, Truck, Ban } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, AlertTriangle, Package, ShoppingCart as CartIcon, CheckCircle, Clock, Truck, Ban, CalendarCheck } from 'lucide-react';
 import { useProducts, Product, PRODUCT_CATEGORIES, PRODUCT_GENDERS } from '../context/ProductContext';
 import { db, OperationType, handleFirestoreError } from '../firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
 interface Order {
   id: string;
-  customerEmail: string;
+  customerName: string;
+  customerContact: string;
+  customerAddress: string;
+  customerEmail?: string;
   items: {
     id: string;
     name: string;
@@ -18,15 +21,29 @@ interface Order {
   createdAt: Timestamp;
 }
 
+interface Appointment {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  date: string;
+  time: string;
+  reason: string;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  createdAt: Timestamp;
+}
+
 export function Admin() {
   const { products, addProduct, updateProduct, deleteProduct, isLoading: isProductsLoading } = useProducts();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'appointments'>('products');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
+  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
-  
+
   const categories = [...PRODUCT_CATEGORIES];
   const genders = [...PRODUCT_GENDERS];
 
@@ -34,15 +51,32 @@ export function Admin() {
     setIsOrdersLoading(true);
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      const ordersData = snapshot.docs.map((document) => ({
+        id: document.id,
+        ...document.data()
       })) as Order[];
       setOrders(ordersData);
       setIsOrdersLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'orders');
       setIsOrdersLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    setIsAppointmentsLoading(true);
+    const q = query(collection(db, 'appointments'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const appointmentsData = snapshot.docs.map((document) => ({
+        id: document.id,
+        ...document.data()
+      })) as Appointment[];
+      setAppointments(appointmentsData);
+      setIsAppointmentsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'appointments');
+      setIsAppointmentsLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -55,12 +89,30 @@ export function Admin() {
     }
   };
 
+  const updateAppointmentStatus = async (appointmentId: string, newStatus: Appointment['status']) => {
+    try {
+      await updateDoc(doc(db, 'appointments', appointmentId), { status: newStatus });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `appointments/${appointmentId}`);
+    }
+  };
+
   const deleteOrder = async (orderId: string) => {
     if (window.confirm('Supprimer cette commande ?')) {
       try {
         await deleteDoc(doc(db, 'orders', orderId));
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
+      }
+    }
+  };
+
+  const deleteAppointment = async (appointmentId: string) => {
+    if (window.confirm('Supprimer ce rendez-vous ?')) {
+      try {
+        await deleteDoc(doc(db, 'appointments', appointmentId));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `appointments/${appointmentId}`);
       }
     }
   };
@@ -80,6 +132,14 @@ export function Admin() {
       case 'validated': return 'Validée';
       case 'shipped': return 'Expédiée';
       case 'cancelled': return 'Annulée';
+    }
+  };
+
+  const getAppointmentStatusLabel = (status: Appointment['status']) => {
+    switch (status) {
+      case 'pending': return 'En attente';
+      case 'confirmed': return 'Confirmé';
+      case 'cancelled': return 'Annulé';
     }
   };
 
@@ -141,7 +201,7 @@ export function Admin() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900">Administration</h1>
-          <p className="mt-2 text-gray-500">Gérez votre catalogue et vos commandes.</p>
+          <p className="mt-2 text-gray-500">Gérez votre catalogue, vos commandes et vos rendez-vous.</p>
         </div>
         <div className="flex gap-4">
           <div className="flex bg-gray-100 p-1 rounded-xl">
@@ -158,9 +218,21 @@ export function Admin() {
             >
               <CartIcon className="w-4 h-4 mr-2" />
               Commandes
-              {orders.filter(o => o.status === 'pending').length > 0 && (
+              {orders.filter(order => order.status === 'pending').length > 0 && (
                 <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {orders.filter(o => o.status === 'pending').length}
+                  {orders.filter(order => order.status === 'pending').length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('appointments')}
+              className={`flex items-center px-4 py-2 rounded-lg transition-all ${activeTab === 'appointments' ? 'bg-white shadow-sm text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <CalendarCheck className="w-4 h-4 mr-2" />
+              Rendez-vous
+              {appointments.filter(appointment => appointment.status === 'pending').length > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {appointments.filter(appointment => appointment.status === 'pending').length}
                 </span>
               )}
             </button>
@@ -198,7 +270,7 @@ export function Admin() {
                         <X className="w-6 h-6" />
                       </button>
                     </div>
-                    
+
                     <form onSubmit={handleSave} className="p-6 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -207,7 +279,7 @@ export function Admin() {
                             type="text"
                             required
                             value={currentProduct.name || ''}
-                            onChange={e => setCurrentProduct({...currentProduct, name: e.target.value})}
+                            onChange={e => setCurrentProduct({ ...currentProduct, name: e.target.value })}
                             className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
                           />
                         </div>
@@ -219,7 +291,7 @@ export function Admin() {
                             min="0"
                             step="0.01"
                             value={currentProduct.price || ''}
-                            onChange={e => setCurrentProduct({...currentProduct, price: parseFloat(e.target.value)})}
+                            onChange={e => setCurrentProduct({ ...currentProduct, price: parseFloat(e.target.value) })}
                             className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
                           />
                         </div>
@@ -237,7 +309,7 @@ export function Admin() {
                                 if (file) {
                                   const reader = new FileReader();
                                   reader.onloadend = () => {
-                                    setCurrentProduct({...currentProduct, image: reader.result as string});
+                                    setCurrentProduct({ ...currentProduct, image: reader.result as string });
                                   };
                                   reader.readAsDataURL(file);
                                 }
@@ -311,12 +383,12 @@ export function Admin() {
                             required
                             rows={3}
                             value={currentProduct.description || ''}
-                            onChange={e => setCurrentProduct({...currentProduct, description: e.target.value})}
+                            onChange={e => setCurrentProduct({ ...currentProduct, description: e.target.value })}
                             className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
                         <button
                           type="button"
@@ -439,7 +511,7 @@ export function Admin() {
             </>
           )}
         </>
-      ) : (
+      ) : activeTab === 'orders' ? (
         <div className="space-y-6">
           {isOrdersLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
@@ -463,10 +535,10 @@ export function Admin() {
                     <div className="flex items-center gap-3">
                       <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
                         order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                        order.status === 'validated' ? 'bg-green-50 text-green-700 border-green-100' :
-                        order.status === 'shipped' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                        'bg-red-50 text-red-700 border-red-100'
-                      }`}>
+                          order.status === 'validated' ? 'bg-green-50 text-green-700 border-green-100' :
+                            order.status === 'shipped' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                              'bg-red-50 text-red-700 border-red-100'
+                        }`}>
                         {getStatusIcon(order.status)}
                         {getStatusLabel(order.status)}
                       </div>
@@ -492,7 +564,9 @@ export function Admin() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div>
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Client</h4>
-                        <p className="text-sm font-medium text-gray-900">{order.customerEmail}</p>
+                        <p className="text-sm font-medium text-gray-900">{order.customerName || 'Non renseigné'}</p>
+                        <p className="text-sm text-gray-600 mt-1">Contact: {order.customerContact || order.customerEmail || 'Non renseigné'}</p>
+                        <p className="text-sm text-gray-600 mt-1">Adresse: {order.customerAddress || 'Non renseignée'}</p>
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Articles</h4>
@@ -518,6 +592,75 @@ export function Admin() {
                   <CartIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900">Aucune commande</h3>
                   <p className="text-gray-500">Les commandes de vos clients apparaîtront ici.</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {isAppointmentsLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 mb-4"></div>
+              <p className="text-gray-500">Chargement des rendez-vous...</p>
+            </div>
+          ) : (
+            <>
+              {appointments.map((appointment) => (
+                <div key={appointment.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                        <CalendarCheck className="w-5 h-5 text-purple-700" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">Rendez-vous #{appointment.id.slice(-6).toUpperCase()}</h3>
+                        <p className="text-xs text-gray-500">Créé le {appointment.createdAt.toDate().toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
+                        appointment.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+                          appointment.status === 'confirmed' ? 'bg-green-50 text-green-700 border-green-100' :
+                            'bg-red-50 text-red-700 border-red-100'
+                        }`}>
+                        <Clock className="w-4 h-4" />
+                        {getAppointmentStatusLabel(appointment.status)}
+                      </div>
+                      <select
+                        value={appointment.status}
+                        onChange={(e) => updateAppointmentStatus(appointment.id, e.target.value as Appointment['status'])}
+                        className="text-xs rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                      >
+                        <option value="pending">En attente</option>
+                        <option value="confirmed">Confirmer</option>
+                        <option value="cancelled">Annuler</option>
+                      </select>
+                      <button
+                        onClick={() => deleteAppointment(appointment.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Informations client</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <p><span className="font-semibold text-gray-900">Nom:</span> <span className="text-gray-700">{appointment.name}</span></p>
+                      <p><span className="font-semibold text-gray-900">Téléphone:</span> <span className="text-gray-700">{appointment.phone}</span></p>
+                      <p><span className="font-semibold text-gray-900">Email:</span> <span className="text-gray-700">{appointment.email}</span></p>
+                      <p><span className="font-semibold text-gray-900">Motif:</span> <span className="text-gray-700">{appointment.reason}</span></p>
+                      <p className="md:col-span-2"><span className="font-semibold text-gray-900">Créneau:</span> <span className="text-gray-700">{appointment.date} à {appointment.time}</span></p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {appointments.length === 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                  <CalendarCheck className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900">Aucun rendez-vous</h3>
+                  <p className="text-gray-500">Les rendez-vous de vos clients apparaîtront ici.</p>
                 </div>
               )}
             </>

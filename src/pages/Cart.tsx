@@ -9,7 +9,9 @@ export function Cart() {
   const { items, removeFromCart, total, subtotal, discount, discountPercentage, clearCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerContact, setCustomerContact] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +20,9 @@ export function Cart() {
     setIsCheckingOut(true);
     try {
       const orderData = {
-        customerEmail,
+        customerName,
+        customerContact,
+        customerAddress,
         items: items.map(item => ({
           id: item.id,
           name: item.name,
@@ -34,7 +38,7 @@ export function Cart() {
       };
 
       await addDoc(collection(db, 'orders'), orderData);
-      
+
       setIsSuccess(true);
       clearCart();
     } catch (error) {
@@ -143,20 +147,42 @@ export function Cart() {
               <p>Total à payer</p>
               <p>{total} FCFA</p>
             </div>
-            
-            <form onSubmit={handleCheckout}>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Votre Email</label>
+
+            <form onSubmit={handleCheckout} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nom & prénom</label>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full rounded-xl border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
-                  placeholder="votre@email.com"
+                  placeholder="Jean Dupont"
                 />
               </div>
-              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Contact</label>
+                <input
+                  type="text"
+                  required
+                  value={customerContact}
+                  onChange={(e) => setCustomerContact(e.target.value)}
+                  className="w-full rounded-xl border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                  placeholder="Téléphone ou email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  className="w-full rounded-xl border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                  placeholder="Votre adresse complète"
+                />
+              </div>
+
               <button
                 type="submit"
                 disabled={isCheckingOut}
