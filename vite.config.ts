@@ -19,6 +19,8 @@ export default defineConfig(({mode}) => {
       'process.env.VITE_FIREBASE_APP_ID': JSON.stringify(env.VITE_FIREBASE_APP_ID),
       'process.env.VITE_FIREBASE_DATABASE_ID': JSON.stringify(env.VITE_FIREBASE_DATABASE_ID),
       'process.env.VITE_ADMIN_NOTIFICATION_EMAILS': JSON.stringify(env.VITE_ADMIN_NOTIFICATION_EMAILS),
+      'process.env.VITE_TELEGRAM_BOT_TOKEN': JSON.stringify(env.VITE_TELEGRAM_BOT_TOKEN),
+      'process.env.VITE_TELEGRAM_CHAT_ID': JSON.stringify(env.VITE_TELEGRAM_CHAT_ID),
     },
     resolve: {
       alias: {
