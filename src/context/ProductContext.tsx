@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { db, OperationType, handleFirestoreError } from '../firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
-import { products as initialProducts } from '../data/products';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 
 export const PRODUCT_CATEGORIES = ['Myopie', 'Presbytie', 'Astigmatisme', 'Hypermétropie', 'Solaire', 'Entretien'] as const;
 export const PRODUCT_GENDERS = ['Femme', 'Homme', 'Enfant'] as const;
@@ -26,6 +25,7 @@ interface ProductContextType {
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
+const PRODUCTS_CACHE_KEY = 'sk_optic_products_cache_v1';
 
 const normalizeProduct = (rawProduct: Partial<Product> & { id: string }): Product => {
   const categories = Array.isArray(rawProduct.categories) && rawProduct.categories.length > 0
@@ -50,26 +50,48 @@ const normalizeProduct = (rawProduct: Partial<Product> & { id: string }): Produc
   };
 };
 
+const getCachedProducts = (): Product[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw) as Array<Partial<Product> & { id?: string }>;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((item): item is Partial<Product> & { id: string } => typeof item?.id === 'string' && item.id.length > 0)
+      .map((item) => normalizeProduct(item));
+  } catch {
+    return [];
+  }
+};
+
+const cacheProducts = (rows: Product[]) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(rows));
+  } catch {
+    // Ignore cache write errors (private mode, quota, etc.)
+  }
+};
+
 export function ProductProvider({ children }: { children: React.ReactNode }) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedProducts = useMemo(() => getCachedProducts(), []);
+  const [products, setProducts] = useState<Product[]>(cachedProducts);
+  const [isLoading, setIsLoading] = useState(cachedProducts.length === 0);
 
   useEffect(() => {
-    const seedProducts = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'products'));
-        if (snapshot.empty) {
-          for (const product of initialProducts) {
-            const { id, ...rest } = product;
-            await addDoc(collection(db, 'products'), rest);
-          }
-        }
-      } catch (error) {
-        console.error('Error seeding products:', error);
-      }
-    };
-    seedProducts();
-
     const q = query(collection(db, 'products'), orderBy('name'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const productsData = snapshot.docs.map(item => normalizeProduct({
@@ -77,9 +99,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
         ...(item.data() as Partial<Product>)
       }));
       setProducts(productsData);
+      cacheProducts(productsData);
       setIsLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'products');
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
