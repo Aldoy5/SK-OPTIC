@@ -11,15 +11,29 @@ interface PrescriptionData {
   explication: string;
 }
 
+// Liste de modèles à essayer en ordre de priorité (fallback)
+const FALLBACK_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+];
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 2000;
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export function UploadPrescription() {
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState('');
   const [result, setResult] = useState<PrescriptionData | null>(null);
   const navigate = useNavigate();
-  const geminiApiKey =
-    import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-  const geminiModel = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
+  const geminiApiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+  const configuredModel = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -35,33 +49,29 @@ export function UploadPrescription() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
-    if (!geminiApiKey) {
-      setError("La clé API Gemini est manquante. Ajoutez VITE_GEMINI_API_KEY dans votre configuration.");
-      return;
-    }
+  const callGeminiWithRetry = async (ai: GoogleGenAI, base64Data: string, mimeType: string) => {
+    // Construire la liste de modèles : le modèle configuré en premier, puis les fallbacks
+    const modelsToTry = [configuredModel, ...FALLBACK_MODELS.filter(m => m !== configuredModel)];
 
-    setIsAnalyzing(true);
-    setError('');
-
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
+    for (const model of modelsToTry) {
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          const base64Data = (reader.result as string).split(',')[1];
-          
-          const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-          
+          if (attempt > 0 || model !== modelsToTry[0]) {
+            setStatusMessage(
+              attempt > 0
+                ? `Nouvelle tentative (${attempt + 1}/${MAX_RETRIES + 1}) avec ${model}...`
+                : `Basculement vers le modèle ${model}...`
+            );
+          }
+
           const response = await ai.models.generateContent({
-            model: geminiModel,
+            model: model,
             contents: {
               parts: [
                 {
                   inlineData: {
                     data: base64Data,
-                    mimeType: file.type,
+                    mimeType: mimeType,
                   }
                 },
                 {
@@ -107,7 +117,66 @@ export function UploadPrescription() {
             }
           });
 
-          const resultText = response.text;
+          return response;
+        } catch (err: unknown) {
+          const is503 = err instanceof Error && (
+            err.message.includes('503') ||
+            err.message.includes('UNAVAILABLE') ||
+            err.message.includes('high demand') ||
+            err.message.includes('overloaded')
+          );
+          const is429 = err instanceof Error && (
+            err.message.includes('429') ||
+            err.message.includes('RESOURCE_EXHAUSTED') ||
+            err.message.includes('rate limit')
+          );
+
+          const isRetryable = is503 || is429;
+
+          // Si c'est la dernière tentative pour ce modèle, passer au suivant
+          if (!isRetryable || attempt === MAX_RETRIES) {
+            if (model === modelsToTry[modelsToTry.length - 1] && attempt === MAX_RETRIES) {
+              // Plus aucun modèle ni tentative disponible
+              throw err;
+            }
+            // Passer au modèle suivant
+            break;
+          }
+
+          // Attendre avant de réessayer (backoff exponentiel)
+          const delay = RETRY_DELAY_MS * Math.pow(2, attempt);
+          setStatusMessage(`Service temporairement indisponible. Nouvelle tentative dans ${delay / 1000}s...`);
+          await sleep(delay);
+        }
+      }
+    }
+
+    throw new Error("Tous les modèles IA sont temporairement indisponibles. Veuillez réessayer dans quelques minutes.");
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    if (!geminiApiKey) {
+      setError("La clé API Gemini est manquante. Ajoutez GEMINI_API_KEY dans votre configuration.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError('');
+    setStatusMessage('Analyse par l\'IA en cours...');
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        try {
+          const base64Data = (reader.result as string).split(',')[1];
+          
+          const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+          
+          const response = await callGeminiWithRetry(ai, base64Data, file.type);
+
+          const resultText = response?.text;
           if (resultText) {
             const sanitizedText = resultText
               .replace(/^```json\s*/i, '')
@@ -123,21 +192,38 @@ export function UploadPrescription() {
             setError("L'IA n'a pas renvoyé de résultat exploitable.");
           }
         } catch (err: unknown) {
-          console.error(err);
-          const errorMessage =
-            err instanceof Error ? err.message : "Une erreur s'est produite lors de l'analyse par l'IA.";
-          setError(`Analyse IA échouée : ${errorMessage}`);
+          console.error("Erreur analyse ordonnance:", err);
+          let userMessage: string;
+          if (err instanceof Error) {
+            if (err.message.includes('503') || err.message.includes('UNAVAILABLE') || err.message.includes('high demand')) {
+              userMessage = "Le service d'IA est temporairement surchargé. Veuillez réessayer dans quelques instants.";
+            } else if (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED')) {
+              userMessage = "Trop de requêtes en cours. Veuillez patienter un moment et réessayer.";
+            } else if (err.message.includes('400') || err.message.includes('INVALID_ARGUMENT')) {
+              userMessage = "Le fichier envoyé n'a pas pu être traité. Essayez avec une autre image.";
+            } else if (err.message.includes('Tous les modèles')) {
+              userMessage = err.message;
+            } else {
+              userMessage = "Une erreur s'est produite lors de l'analyse. Veuillez réessayer.";
+            }
+          } else {
+            userMessage = "Une erreur inattendue s'est produite. Veuillez réessayer.";
+          }
+          setError(userMessage);
         } finally {
           setIsAnalyzing(false);
+          setStatusMessage('');
         }
       };
       reader.onerror = () => {
         setError("Erreur lors de la lecture du fichier.");
         setIsAnalyzing(false);
+        setStatusMessage('');
       };
     } catch (err) {
       setError("Une erreur inattendue s'est produite.");
       setIsAnalyzing(false);
+      setStatusMessage('');
     }
   };
 
@@ -229,7 +315,7 @@ export function UploadPrescription() {
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                    Analyse par l'IA en cours...
+                    {statusMessage || "Analyse par l'IA en cours..."}
                   </>
                 ) : (
                   'Analyser mon ordonnance'
