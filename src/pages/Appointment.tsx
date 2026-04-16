@@ -138,10 +138,17 @@ export function Appointment() {
       });
 
       try {
+        const notificationText = `📅 Nouveau rendez-vous pour ${formData.name}\n\n` +
+          `👤 Nom : ${formData.name}\n` +
+          `📞 Téléphone : ${formData.phone}\n` +
+          `📅 Date : ${formData.date}\n` +
+          `🕒 Heure : ${formData.time}\n` +
+          `📝 Motif : ${formData.reason}`;
+
         await sendAdminNotificationEmails({
           subject: 'Nouveau rendez-vous SK OPTIC',
-          text: `Nouveau rendez-vous: ${formData.name} le ${formData.date} à ${formData.time}. Téléphone: ${formData.phone}.`,
-          html: `<p><strong>Nouveau rendez-vous</strong></p><p>Nom: ${formData.name}</p><p>Téléphone: ${formData.phone}</p><p>Date: ${formData.date}</p><p>Heure: ${formData.time}</p><p>Motif: ${formData.reason}</p>`,
+          text: notificationText,
+          html: '',
         });
       } catch (notificationError) {
         console.warn('Notification admin non envoyée:', notificationError);

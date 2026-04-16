@@ -47,10 +47,21 @@ export function Cart() {
       await addDoc(collection(db, 'orders'), orderData);
 
       try {
+        const itemsList = items.map(item => `- ${item.name} (x${item.quantity}) : ${item.price * item.quantity} FCFA`).join('\n');
+        const promoInfo = appliedPromotion ? `\n🎁 Promotion : ${appliedPromotion.title} (-${discount} FCFA)` : '';
+        
+        const notificationText = `📦 Nouvelle commande de ${customerName}\n\n` +
+          `👤 Client : ${customerName}\n` +
+          `📞 Contact : ${customerContact}\n` +
+          `📍 Adresse : ${customerAddress}\n\n` +
+          `🛒 Articles :\n${itemsList}\n` +
+          `${promoInfo}\n` +
+          `💰 Total : ${total} FCFA`;
+
         await sendAdminNotificationEmails({
           subject: 'Nouvelle commande SK OPTIC',
-          text: `Nouvelle commande de ${customerName}. Total: ${total} FCFA. Contact: ${customerContact}.`,
-          html: `<p><strong>Nouvelle commande</strong></p><p>Client: ${customerName}</p><p>Contact: ${customerContact}</p><p>Adresse: ${customerAddress}</p><p>Total: ${total} FCFA</p>`,
+          text: notificationText,
+          html: '', // Le service s'occupe de formater le message Telegram
         });
       } catch (notificationError) {
         console.warn('Notification admin non envoyée:', notificationError);
