@@ -2,50 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // ===============================================================
-    // Assumed Data Model
+    // Modèle de Données
     // ===============================================================
-    //
     // Collection: products
-    // Fields:
-    //   - name: string (required)
-    //   - price: number (required)
-    //   - image: string
-    //   - category: string (required)
-    //   - description: string
-    //
     // Collection: orders
-    // Fields:
-    //   - customerName: string (required)
-    //   - customerContact: string (required)
-    //   - customerAddress: string (required)
-    //   - items: list (required)
-    //   - total: number (required)
-    //   - status: string (required, enum: ['pending', 'validated', 'shipped', 'cancelled'])
-    //   - createdAt: timestamp (required)
-    //
     // Collection: appointments
-    // Fields:
-    //   - name: string (required)
-    //   - email: string (required)
-    //   - phone: string (required)
-    //   - date: string (required)
-    //   - time: string (required)
-    //   - reason: string (required)
-    //   - status: string (required, enum: ['pending', 'confirmed', 'cancelled'])
-    //   - createdAt: timestamp (required)
-    //
     // Collection: promotions
-    // Fields:
-    //   - title: string (required)
-    //   - description: string (required)
-    //   - type: string (required, enum: ['percentage', 'fixed'])
-    //   - value: number (required)
-    //   - minQuantity: number (required)
-    //   - isActive: boolean (required)
-    //
     // ===============================================================
 
-    // Helper Functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -65,7 +29,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && (isAllowedAdminEmail() || isAllowedAdminUid());
+      return isAuthenticated() &&
+        (request.auth.token.email in ["alexachie14@gmail.com", "amaniserge25@gmail.com"]);
     }
 
     function isValidProduct(data) {
@@ -108,25 +73,26 @@ service cloud.firestore {
              data.isActive is bool;
     }
 
-    // Rules
     match /products/{productId} {
       allow read: if true;
-      allow create, update: if isAdmin() && isValidProduct(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update, delete: if isAdmin() && isValidProduct(request.resource.data);
     }
 
     match /orders/{orderId} {
       allow read: if isAdmin();
       allow create: if isValidOrder(request.resource.data);
-      allow update: if isAdmin() && isValidOrder(request.resource.data);
-      allow delete: if isAdmin();
+      allow update, delete: if isAdmin() && isValidOrder(request.resource.data);
     }
 
     match /appointments/{appointmentId} {
       allow read: if isAdmin();
       allow create: if isValidAppointment(request.resource.data);
-      allow update: if isAdmin() && isValidAppointment(request.resource.data);
-      allow delete: if isAdmin();
+      allow update, delete: if isAdmin() && isValidAppointment(request.resource.data);
+    }
+
+    match /promotions/{promotionId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidPromotion(request.resource.data);
     }
 
     match /promotions/{promotionId} {
