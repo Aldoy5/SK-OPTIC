@@ -6,6 +6,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { PromotionProvider } from './context/PromotionContext';
 import { ProductProvider } from './context/ProductContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
@@ -33,7 +34,8 @@ export default function App() {
   return (
     <AuthProvider>
       <ProductProvider>
-        <CartProvider>
+        <PromotionProvider>
+          <CartProvider>
           <Router basename={import.meta.env.BASE_URL}>
             <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
               <Navbar />
@@ -73,7 +75,8 @@ export default function App() {
               </footer>
             </div>
           </Router>
-        </CartProvider>
+          </CartProvider>
+        </PromotionProvider>
       </ProductProvider>
     </AuthProvider>
   );

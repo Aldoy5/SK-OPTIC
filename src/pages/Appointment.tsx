@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, Clock, User, Phone, Mail, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, User, Phone, CheckCircle } from 'lucide-react';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 
@@ -105,7 +105,6 @@ export function Appointment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     phone: '',
     date: availableDates[0] || '',
     time: availableTimeSlots[0] || '08:00',
@@ -154,14 +153,12 @@ export function Appointment() {
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Rendez-vous Confirmé</h2>
           <p className="text-lg text-gray-600 mb-8">
             Merci {formData.name}. Votre rendez-vous est prévu le {formData.date} à {formData.time}.
-            Nous vous avons envoyé un email de confirmation à {formData.email}.
           </p>
           <button
             onClick={() => {
               setFormData({
                 name: '',
-                email: '',
-                phone: '',
+                            phone: '',
                 date: availableDates[0] || '',
                 time: availableTimeSlots[0] || '08:00',
                 reason: 'examen',
@@ -213,25 +210,6 @@ export function Appointment() {
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="focus:ring-purple-700 focus:border-purple-700 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-3 border"
-                    placeholder="jean@exemple.com"
-                  />
-                </div>
-              </div>
-
-              <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Téléphone</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -258,6 +236,7 @@ export function Appointment() {
                     name="reason"
                     value={formData.reason}
                     onChange={handleChange}
+                    required
                     className="focus:ring-purple-700 focus:border-purple-700 block w-full sm:text-sm border-gray-300 rounded-md py-3 px-3 border bg-white"
                   >
                     <option value="examen">Examen de la vue</option>

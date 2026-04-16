@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Shield, Truck, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
@@ -9,7 +9,8 @@ export function ProductDetail() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { products, isLoading } = useProducts();
-  
+  const [quantity, setQuantity] = useState(1);
+
   const product = products.find(p => p.id === id);
 
   if (isLoading) {
@@ -36,7 +37,7 @@ export function ProductDetail() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="flex items-center text-gray-600 hover:text-gray-900 mb-8 transition-colors"
         >
@@ -48,9 +49,9 @@ export function ProductDetail() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 lg:p-12">
             {/* Image section */}
             <div className="rounded-xl overflow-hidden bg-gray-100 aspect-square">
-              <img 
-                src={product.image} 
-                alt={product.name} 
+              <img
+                src={product.image}
+                alt={product.name}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
@@ -79,8 +80,35 @@ export function ProductDetail() {
                 {product.description}
               </p>
 
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quantité</label>
+                <div className="inline-flex items-center border border-gray-300 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                    className="px-4 py-2 text-lg font-bold text-gray-700 hover:bg-gray-100"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-20 text-center border-x border-gray-300 py-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((prev) => prev + 1)}
+                    className="px-4 py-2 text-lg font-bold text-gray-700 hover:bg-gray-100"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
               <button
-                onClick={() => addToCart(product)}
+                onClick={() => addToCart(product, quantity)}
                 className="w-full flex items-center justify-center py-4 px-8 border border-transparent rounded-xl shadow-sm text-lg font-medium text-white bg-purple-700 hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-700 transition-colors mb-8"
               >
                 <ShoppingCart className="w-6 h-6 mr-2" />
