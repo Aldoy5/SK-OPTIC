@@ -4,7 +4,7 @@ import { ArrowRight, Upload, Calendar, Eye, Tag, ShieldCheck } from 'lucide-reac
 import { usePromotions } from '../context/PromotionContext';
 
 export function Home() {
-  const { activePromotions } = usePromotions();
+  const { activePromotions, isLoading } = usePromotions();
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -63,14 +63,20 @@ export function Home() {
                 Profitez de nos offres groupées pour toute la famille !
               </p>
               <div className="space-y-4">
-                {activePromotions.map((promotion) => (
-                  <div key={promotion.id} className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
-                    <h3 className="font-bold text-xl">{promotion.title}</h3>
-                    <p className="text-purple-100">{promotion.description}</p>
-                  </div>
-                ))}
-                {activePromotions.length === 0 && (
-                  <p className="text-purple-100">Aucune offre active pour le moment.</p>
+                {isLoading ? (
+                  <p className="text-purple-100">Chargement des offres en cours...</p>
+                ) : (
+                  <>
+                    {activePromotions.map((promotion) => (
+                      <div key={promotion.id} className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+                        <h3 className="font-bold text-xl">{promotion.title}</h3>
+                        <p className="text-purple-100">{promotion.description}</p>
+                      </div>
+                    ))}
+                    {activePromotions.length === 0 && (
+                      <p className="text-purple-100">Aucune offre active pour le moment.</p>
+                    )}
+                  </>
                 )}
               </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 
 export type PromotionType = 'percentage' | 'fixed';
@@ -24,25 +24,7 @@ interface PromotionContextType {
 }
 
 const PromotionContext = createContext<PromotionContextType | undefined>(undefined);
-
-const DEFAULT_PROMOTIONS: Omit<Promotion, 'id'>[] = [
-  {
-    title: 'Offre Duo',
-    description: '2 montures achetées = -15% sur le total',
-    type: 'percentage',
-    value: 15,
-    minQuantity: 2,
-    isActive: true
-  },
-  {
-    title: 'Offre Trio',
-    description: '3 montures achetées = -25% sur le total',
-    type: 'percentage',
-    value: 25,
-    minQuantity: 3,
-    isActive: true
-  }
-];
+const PROMOTIONS_CACHE_KEY = 'sk_optic_promotions_cache_v1';
 
 const normalizePromotion = (id: string, data: Partial<Promotion>): Promotion => ({
   id,
@@ -54,30 +36,53 @@ const normalizePromotion = (id: string, data: Partial<Promotion>): Promotion => 
   isActive: Boolean(data.isActive)
 });
 
+const getCachedPromotions = (): Promotion[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PROMOTIONS_CACHE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw) as Array<Partial<Promotion> & { id?: string }>;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((item): item is Partial<Promotion> & { id: string } => typeof item?.id === 'string' && item.id.length > 0)
+      .map((item) => normalizePromotion(item.id, item));
+  } catch {
+    return [];
+  }
+};
+
+const cachePromotions = (rows: Promotion[]) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(PROMOTIONS_CACHE_KEY, JSON.stringify(rows));
+  } catch {
+    // Ignore cache write errors (private mode, quota, etc.)
+  }
+};
+
 export function PromotionProvider({ children }: { children: React.ReactNode }) {
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedPromotions = useMemo(() => getCachedPromotions(), []);
+  const [promotions, setPromotions] = useState<Promotion[]>(cachedPromotions);
+  const [isLoading, setIsLoading] = useState(cachedPromotions.length === 0);
 
   useEffect(() => {
-    const seedPromotions = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'promotions'));
-        if (snapshot.empty) {
-          for (const promotion of DEFAULT_PROMOTIONS) {
-            await addDoc(collection(db, 'promotions'), promotion);
-          }
-        }
-      } catch (error) {
-        console.error('Error seeding promotions:', error);
-      }
-    };
-
-    seedPromotions();
-
     const q = query(collection(db, 'promotions'), orderBy('minQuantity', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const rows = snapshot.docs.map((item) => normalizePromotion(item.id, item.data() as Partial<Promotion>));
       setPromotions(rows);
+      cachePromotions(rows);
       setIsLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'promotions');

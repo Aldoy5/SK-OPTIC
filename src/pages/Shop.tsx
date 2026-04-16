@@ -7,7 +7,7 @@ import { usePromotions } from '../context/PromotionContext';
 
 export function Shop() {
   const { addToCart } = useCart();
-  const { activePromotions } = usePromotions();
+  const { activePromotions, isLoading: isPromotionsLoading } = usePromotions();
   const { products, isLoading } = useProducts();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -47,9 +47,11 @@ export function Shop() {
             </div>
             <h2 className="text-2xl font-bold mb-1">Offres en cours</h2>
             <p className="text-purple-100 opacity-90">
-              {activePromotions.length > 0
-                ? activePromotions.map((promotion) => promotion.title).join(' • ')
-                : 'Aucune promotion active pour le moment.'}
+              {isPromotionsLoading
+                ? 'Chargement des promotions...'
+                : activePromotions.length > 0
+                  ? activePromotions.map((promotion) => promotion.title).join(' • ')
+                  : 'Aucune promotion active pour le moment.'}
             </p>
           </div>
           <div className="hidden sm:block opacity-20 absolute -right-4 -bottom-4">
