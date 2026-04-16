@@ -34,6 +34,15 @@ service cloud.firestore {
     //   - status: string (required, enum: ['pending', 'confirmed', 'cancelled'])
     //   - createdAt: timestamp (required)
     //
+    // Collection: promotions
+    // Fields:
+    //   - title: string (required)
+    //   - description: string (required)
+    //   - type: string (required, enum: ['percentage', 'fixed'])
+    //   - value: number (required)
+    //   - minQuantity: number (required)
+    //   - isActive: boolean (required)
+    //
     // ===============================================================
 
     // Helper Functions
@@ -41,9 +50,22 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAllowedAdminEmail() {
+      return request.auth.token.email is string &&
+        request.auth.token.email.lower() in [
+          "alexachie14@gmail.com",
+          "amaniserge25@gmail.com"
+        ];
+    }
+
+    function isAllowedAdminUid() {
+      return request.auth.uid in [
+        "x3EYUOIZLhUOd8Hxa8rjsCrKtNe2"
+      ];
+    }
+
     function isAdmin() {
-      return isAuthenticated() &&
-        ((request.auth.token.email == "alexachie14@gmail.com" || request.auth.token.email == "amaniserge25@gmail.com") && request.auth.token.email_verified == true);
+      return isAuthenticated() && (isAllowedAdminEmail() || isAllowedAdminUid());
     }
 
     function isValidProduct(data) {
@@ -76,6 +98,16 @@ service cloud.firestore {
              data.createdAt is timestamp;
     }
 
+    function isValidPromotion(data) {
+      return data.keys().hasAll(['title', 'description', 'type', 'value', 'minQuantity', 'isActive']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 120 &&
+             data.description is string && data.description.size() > 0 && data.description.size() < 500 &&
+             data.type in ['percentage', 'fixed'] &&
+             data.value is number && data.value > 0 &&
+             data.minQuantity is number && data.minQuantity >= 1 &&
+             data.isActive is bool;
+    }
+
     // Rules
     match /products/{productId} {
       allow read: if true;
@@ -94,6 +126,12 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if isValidAppointment(request.resource.data);
       allow update: if isAdmin() && isValidAppointment(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /promotions/{promotionId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidPromotion(request.resource.data);
       allow delete: if isAdmin();
     }
 
