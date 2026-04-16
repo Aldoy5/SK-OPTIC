@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, AlertTriangle, Package, ShoppingCart as CartIcon, CheckCircle, Clock, Truck, Ban, CalendarCheck } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, AlertTriangle, Package, ShoppingCart as CartIcon, CheckCircle, Clock, Truck, Ban, CalendarCheck, Tag } from 'lucide-react';
 import { useProducts, Product, PRODUCT_CATEGORIES, PRODUCT_GENDERS } from '../context/ProductContext';
 import { db, OperationType, handleFirestoreError } from '../firebase';
+import { Promotion, usePromotions } from '../context/PromotionContext';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
 interface Order {
@@ -35,7 +36,8 @@ interface Appointment {
 
 export function Admin() {
   const { products, addProduct, updateProduct, deleteProduct, isLoading: isProductsLoading } = useProducts();
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'appointments'>('products');
+  const { promotions, addPromotion, updatePromotion, deletePromotion } = usePromotions();
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'appointments' | 'promotions'>('products');
   const [orders, setOrders] = useState<Order[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
@@ -43,6 +45,16 @@ export function Admin() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+
+  const [promotionForm, setPromotionForm] = useState<Omit<Promotion, 'id'>>({
+    title: '',
+    description: '',
+    type: 'percentage',
+    value: 10,
+    minQuantity: 2,
+    isActive: true
+  });
+  const [editingPromotionId, setEditingPromotionId] = useState<string | null>(null);
 
   const categories = [...PRODUCT_CATEGORIES];
   const genders = [...PRODUCT_GENDERS];
@@ -189,6 +201,41 @@ export function Admin() {
     handleCloseEdit();
   };
 
+
+  const resetPromotionForm = () => {
+    setEditingPromotionId(null);
+    setPromotionForm({
+      title: '',
+      description: '',
+      type: 'percentage',
+      value: 10,
+      minQuantity: 2,
+      isActive: true
+    });
+  };
+
+  const handlePromotionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingPromotionId) {
+      await updatePromotion(editingPromotionId, promotionForm);
+    } else {
+      await addPromotion(promotionForm);
+    }
+    resetPromotionForm();
+  };
+
+  const handleEditPromotion = (promotion: Promotion) => {
+    setEditingPromotionId(promotion.id);
+    setPromotionForm({
+      title: promotion.title,
+      description: promotion.description,
+      type: promotion.type,
+      value: promotion.value,
+      minQuantity: promotion.minQuantity,
+      isActive: promotion.isActive
+    });
+  };
+
   const confirmDelete = () => {
     if (productToDelete) {
       deleteProduct(productToDelete);
@@ -235,6 +282,13 @@ export function Admin() {
                   {appointments.filter(appointment => appointment.status === 'pending').length}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setActiveTab('promotions')}
+              className={`flex items-center px-4 py-2 rounded-lg transition-all ${activeTab === 'promotions' ? 'bg-white shadow-sm text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <Tag className="w-4 h-4 mr-2" />
+              Promotions
             </button>
           </div>
           {activeTab === 'products' && (
@@ -597,7 +651,7 @@ export function Admin() {
             </>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'appointments' ? (
         <div className="space-y-6">
           {isAppointmentsLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
@@ -665,6 +719,121 @@ export function Admin() {
               )}
             </>
           )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{editingPromotionId ? 'Modifier la promotion' : 'Nouvelle promotion'}</h3>
+            <form onSubmit={handlePromotionSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                <input
+                  required
+                  value={promotionForm.title}
+                  onChange={(e) => setPromotionForm({ ...promotionForm, title: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description (visible sur le site)</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={promotionForm.description}
+                  onChange={(e) => setPromotionForm({ ...promotionForm, description: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type de remise</label>
+                <select
+                  value={promotionForm.type}
+                  onChange={(e) => setPromotionForm({ ...promotionForm, type: e.target.value as Promotion['type'] })}
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                >
+                  <option value="percentage">Pourcentage</option>
+                  <option value="fixed">Montant fixe</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Valeur</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={promotionForm.value}
+                    onChange={(e) => setPromotionForm({ ...promotionForm, value: Number(e.target.value) || 1 })}
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Qté minimale</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={promotionForm.minQuantity}
+                    onChange={(e) => setPromotionForm({ ...promotionForm, minQuantity: Number(e.target.value) || 1 })}
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-700 focus:ring-purple-700"
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={promotionForm.isActive}
+                  onChange={(e) => setPromotionForm({ ...promotionForm, isActive: e.target.checked })}
+                  className="rounded border-gray-300 text-purple-700 focus:ring-purple-700"
+                />
+                Promotion active
+              </label>
+              <div className="flex gap-2">
+                <button type="submit" className="px-4 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800">{editingPromotionId ? 'Mettre à jour' : 'Créer'}</button>
+                {editingPromotionId && (
+                  <button type="button" onClick={resetPromotionForm} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Annuler</button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Offre</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Règle</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Statut</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {promotions.map((promotion) => (
+                  <tr key={promotion.id}>
+                    <td className="px-6 py-4">
+                      <p className="font-semibold text-gray-900">{promotion.title}</p>
+                      <p className="text-sm text-gray-500">{promotion.description}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      Dès {promotion.minQuantity} article(s) : {promotion.type === 'percentage' ? `${promotion.value}%` : `${promotion.value} FCFA`}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${promotion.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {promotion.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button onClick={() => handleEditPromotion(promotion)} className="text-purple-700 hover:text-purple-900 mr-4"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => deletePromotion(promotion.id)} className="text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4" /></button>
+                    </td>
+                  </tr>
+                ))}
+                {promotions.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-10 text-center text-gray-500">Aucune promotion configurée.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
