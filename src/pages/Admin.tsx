@@ -575,7 +575,7 @@ export function Admin() {
           ) : (
             <>
               {orders.map((order) => (
-                <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div key={`${order.id}-${order.status}`} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <div className="flex items-center gap-4">
                       <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
@@ -661,7 +661,7 @@ export function Admin() {
           ) : (
             <>
               {appointments.map((appointment) => (
-                <div key={appointment.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div key={`${appointment.id}-${appointment.status}`} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <div className="flex items-center gap-4">
                       <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
