@@ -156,6 +156,8 @@ export function Appointment() {
 
       setIsSubmitted(true);
     } catch (error) {
+      console.error('Erreur lors de la création du rendez-vous:', error);
+      alert('Une erreur est survenue lors de la confirmation de votre rendez-vous. Veuillez réessayer ou nous contacter par téléphone.');
       handleFirestoreError(error, OperationType.CREATE, 'appointments');
     } finally {
       setIsSubmitting(false);

@@ -49,15 +49,15 @@ service cloud.firestore {
     }
 
     function isValidAppointment(data) {
-      return data.keys().hasAll(['name', 'email', 'phone', 'date', 'time', 'reason', 'status', 'createdAt']) &&
+      return data.keys().hasAll(['name', 'phone', 'date', 'time', 'reason', 'status', 'createdAt']) &&
              data.name is string && data.name.size() > 0 &&
-             data.email is string && data.email.size() > 0 &&
              data.phone is string && data.phone.size() > 0 &&
              data.date is string && data.date.size() > 0 &&
              data.time is string && data.time.size() > 0 &&
              data.reason is string && data.reason.size() > 0 &&
              data.status in ['pending', 'confirmed', 'cancelled'] &&
-             data.createdAt is timestamp;
+             data.createdAt is timestamp &&
+             (!('email' in data) || (data.email is string));
     }
 
     function isValidPromotion(data) {
