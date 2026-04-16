@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Calendar, Clock, User, Phone, CheckCircle } from 'lucide-react';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
+import { sendAdminNotificationEmails } from '../lib/adminNotifications';
 
 const SLOT_START = 8;
 const SLOT_END = 17;
@@ -135,6 +136,17 @@ export function Appointment() {
         status: 'pending',
         createdAt: Timestamp.now()
       });
+
+      try {
+        await sendAdminNotificationEmails({
+          subject: 'Nouveau rendez-vous SK OPTIC',
+          text: `Nouveau rendez-vous: ${formData.name} le ${formData.date} à ${formData.time}. Téléphone: ${formData.phone}.`,
+          html: `<p><strong>Nouveau rendez-vous</strong></p><p>Nom: ${formData.name}</p><p>Téléphone: ${formData.phone}</p><p>Date: ${formData.date}</p><p>Heure: ${formData.time}</p><p>Motif: ${formData.reason}</p>`,
+        });
+      } catch (notificationError) {
+        console.warn('Notification admin non envoyée:', notificationError);
+      }
+
       setIsSubmitted(true);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'appointments');

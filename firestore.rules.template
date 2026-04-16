@@ -93,6 +93,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+
+    match /mail/{mailId} {
+      allow read, update, delete: if false;
+      allow create: if request.resource.data.keys().hasAll(['to', 'message', 'createdAt']) &&
+                    request.resource.data.to is list && request.resource.data.to.size() > 0 &&
+                    request.resource.data.message is map &&
+                    request.resource.data.createdAt is timestamp;
+    }
+
     match /test/connection {
       allow read: if true;
     }

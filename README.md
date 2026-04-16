@@ -41,3 +41,16 @@ Pour protéger vos clés API sur un site public :
 2.  `npm run dev`
 
 L'application sera accessible sur `http://localhost:3000`.
+
+## 🔔 Notifications admins (commandes & rendez-vous)
+
+L'application crée maintenant automatiquement des documents dans la collection Firestore `mail` après chaque nouvelle commande et chaque nouveau rendez-vous.
+
+Pour envoyer de vraies notifications par email sans que l'admin soit connecté au site :
+
+1. Installez l'extension Firebase **Trigger Email (firestore-send-email)**.
+2. Configurez votre fournisseur SMTP (SendGrid, Mailgun, Gmail, etc.).
+3. Ajoutez `VITE_ADMIN_NOTIFICATION_EMAILS` dans vos variables d'environnement (emails séparés par des virgules).
+4. Déployez vos règles Firestore pour autoriser uniquement la création des docs `mail` côté client.
+
+Résultat: les admins reçoivent un email en temps réel à chaque nouvelle commande ou prise de rendez-vous, même hors ligne.

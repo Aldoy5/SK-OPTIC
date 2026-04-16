@@ -4,6 +4,7 @@ import { Trash2, ShoppingBag, ArrowRight, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { db, OperationType, handleFirestoreError } from '../firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { sendAdminNotificationEmails } from '../lib/adminNotifications';
 
 export function Cart() {
   const { items, removeFromCart, updateQuantity, total, subtotal, discount, discountPercentage, appliedPromotion, clearCart } = useCart();
@@ -44,6 +45,16 @@ export function Cart() {
       };
 
       await addDoc(collection(db, 'orders'), orderData);
+
+      try {
+        await sendAdminNotificationEmails({
+          subject: 'Nouvelle commande SK OPTIC',
+          text: `Nouvelle commande de ${customerName}. Total: ${total} FCFA. Contact: ${customerContact}.`,
+          html: `<p><strong>Nouvelle commande</strong></p><p>Client: ${customerName}</p><p>Contact: ${customerContact}</p><p>Adresse: ${customerAddress}</p><p>Total: ${total} FCFA</p>`,
+        });
+      } catch (notificationError) {
+        console.warn('Notification admin non envoyée:', notificationError);
+      }
 
       setIsSuccess(true);
       clearCart();
