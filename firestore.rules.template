@@ -16,21 +16,16 @@ service cloud.firestore {
 
     function isAllowedAdminEmail() {
       return request.auth.token.email is string &&
-        request.auth.token.email.lower() in [
-          "alexachie14@gmail.com",
-          "amaniserge25@gmail.com"
-        ];
+        request.auth.token.email.lower() in __ADMIN_EMAILS__;
     }
 
     function isAllowedAdminUid() {
-      return request.auth.uid in [
-        "x3EYUOIZLhUOd8Hxa8rjsCrKtNe2"
-      ];
+      return request.auth.uid in __ADMIN_UIDS__;
     }
 
     function isAdmin() {
       return isAuthenticated() &&
-        (request.auth.token.email in ["alexachie14@gmail.com", "amaniserge25@gmail.com"]);
+        (request.auth.token.email in __ADMIN_EMAILS__);
     }
 
     function isValidProduct(data) {
