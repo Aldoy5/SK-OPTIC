@@ -29,12 +29,12 @@ service cloud.firestore {
     }
 
     function isValidProduct(data) {
-      return data.keys().hasAll(['name', 'price', 'category', 'createdAt', 'updatedAt']) &&
+      return data.keys().hasAll(['name', 'price', 'category']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.price is number && data.price >= 0 &&
              data.category is string &&
-             data.createdAt is timestamp &&
-             data.updatedAt is timestamp;
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
     function isValidOrder(data) {

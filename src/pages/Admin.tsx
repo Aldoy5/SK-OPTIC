@@ -181,7 +181,7 @@ export function Admin() {
     setCurrentProduct({});
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentProduct.categories?.length) {
@@ -193,12 +193,18 @@ export function Admin() {
       alert('Veuillez sélectionner au moins un genre.');
       return;
     }
-    if (currentProduct.id) {
-      updateProduct(currentProduct.id, { ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
-    } else {
-      addProduct({ ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
+    
+    try {
+      if (currentProduct.id) {
+        await updateProduct(currentProduct.id, { ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
+      } else {
+        await addProduct({ ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
+      }
+      handleCloseEdit();
+    } catch (error) {
+      alert("Une erreur est survenue lors de l'enregistrement. Veuillez vérifier les permissions et réessayer.");
+      console.error(error);
     }
-    handleCloseEdit();
   };
 
 
