@@ -6,8 +6,8 @@ export const products: Product[] = [
     name: 'Monture Classique Écaille',
     price: 78000,
     image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?auto=format&fit=crop&q=80&w=800',
-    category: 'Myopie',
-    categories: ['Myopie'],
+    category: 'Lunettes de vue',
+    categories: ['Lunettes de vue'],
     genders: ['Femme', 'Homme'],
     description: 'Monture élégante en écaille de tortue, parfaite pour un usage quotidien.'
   },
@@ -16,8 +16,8 @@ export const products: Product[] = [
     name: 'Lunettes Rondes Rétro',
     price: 94000,
     image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=800',
-    category: 'Presbytie',
-    categories: ['Presbytie'],
+    category: 'Lunettes de vue',
+    categories: ['Lunettes de vue'],
     genders: ['Femme', 'Homme'],
     description: 'Style vintage avec une monture métallique fine et légère.'
   },
@@ -26,8 +26,8 @@ export const products: Product[] = [
     name: 'Monture Rectangulaire Noire',
     price: 61500,
     image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?auto=format&fit=crop&q=80&w=800',
-    category: 'Astigmatisme',
-    categories: ['Astigmatisme'],
+    category: 'Lunettes de vue',
+    categories: ['Lunettes de vue'],
     genders: ['Femme', 'Homme'],
     description: 'Design moderne et épuré pour un look professionnel.'
   },
@@ -46,8 +46,8 @@ export const products: Product[] = [
     name: 'Monture Transparente',
     price: 71500,
     image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?auto=format&fit=crop&q=80&w=800',
-    category: 'Myopie',
-    categories: ['Myopie'],
+    category: 'Lunettes de vue',
+    categories: ['Lunettes de vue'],
     genders: ['Femme', 'Homme'],
     description: 'Tendance et discrète, s\'adapte à tous les visages.'
   },
@@ -56,8 +56,8 @@ export const products: Product[] = [
     name: 'Lunettes de Lecture',
     price: 42000,
     image: 'https://images.unsplash.com/photo-1625591342273-9662e2838601?auto=format&fit=crop&q=80&w=800',
-    category: 'Presbytie',
-    categories: ['Presbytie'],
+    category: 'Lunettes de vue',
+    categories: ['Lunettes de vue'],
     genders: ['Femme', 'Homme'],
     description: 'Légères et confortables pour la lecture prolongée.'
   },
@@ -66,8 +66,8 @@ export const products: Product[] = [
     name: 'Monture Ovale Fine',
     price: 87500,
     image: 'https://images.unsplash.com/photo-1509695507497-903c140c43b0?auto=format&fit=crop&q=80&w=800',
-    category: 'Hypermétropie',
-    categories: ['Hypermétropie'],
+    category: 'Lunettes de vue',
+    categories: ['Lunettes de vue'],
     genders: ['Femme', 'Homme'],
     description: 'Monture idéale pour les verres convexes, alliant confort et style.'
   },
@@ -126,8 +126,8 @@ export const products: Product[] = [
     name: 'Monture Papillon Élégante',
     price: 98000,
     image: 'https://images.unsplash.com/photo-1546180245-c59500ad14d0?auto=format&fit=crop&q=80&w=800',
-    category: 'Astigmatisme',
-    categories: ['Astigmatisme'],
+    category: 'Lunettes de vue',
+    categories: ['Lunettes de vue'],
     genders: ['Femme', 'Homme'],
     description: 'Une touche de féminité et d\'élégance pour sublimer votre regard.'
   }

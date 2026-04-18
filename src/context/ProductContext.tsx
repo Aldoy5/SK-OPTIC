@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { db, OperationType, handleFirestoreError } from '../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 
-export const PRODUCT_CATEGORIES = ['Myopie', 'Presbytie', 'Astigmatisme', 'Hypermétropie', 'Solaire', 'Entretien'] as const;
+export const PRODUCT_CATEGORIES = ['Lunettes de vue', 'Solaire', 'Lentilles de contact', 'Entretien', 'Accessoires'] as const;
 export const PRODUCT_GENDERS = ['Femme', 'Homme', 'Enfant'] as const;
 
 export interface Product {
@@ -27,16 +27,22 @@ interface ProductContextType {
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 const PRODUCTS_CACHE_KEY = 'sk_optic_products_cache_v1';
 
+const PATHOLOGY_MAPPING: Record<string, string> = {
+  'Myopie': 'Lunettes de vue',
+  'Presbytie': 'Lunettes de vue',
+  'Astigmatisme': 'Lunettes de vue',
+  'Hypermétropie': 'Lunettes de vue'
+};
+
 const normalizeProduct = (rawProduct: Partial<Product> & { id: string }): Product => {
-  const categories = Array.isArray(rawProduct.categories) && rawProduct.categories.length > 0
+  let categories = Array.isArray(rawProduct.categories) && rawProduct.categories.length > 0
     ? rawProduct.categories
     : rawProduct.category
       ? [rawProduct.category]
       : [PRODUCT_CATEGORIES[0]];
 
-  const genders = Array.isArray(rawProduct.genders) && rawProduct.genders.length > 0
-    ? rawProduct.genders
-    : PRODUCT_GENDERS;
+  // Mappe les anciennes catégories (pathologies) vers les nouvelles (types de produits)
+  categories = categories.map(cat => PATHOLOGY_MAPPING[cat] || cat);
 
   return {
     id: rawProduct.id,
@@ -45,7 +51,7 @@ const normalizeProduct = (rawProduct: Partial<Product> & { id: string }): Produc
     image: rawProduct.image || '',
     description: rawProduct.description || '',
     categories,
-    genders,
+    genders: Array.isArray(rawProduct.genders) && rawProduct.genders.length > 0 ? rawProduct.genders : [...PRODUCT_GENDERS],
     category: categories[0]
   };
 };
