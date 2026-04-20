@@ -42,7 +42,7 @@ const normalizeProduct = (rawProduct: Partial<Product> & { id: string }): Produc
       : [PRODUCT_CATEGORIES[0]];
 
   // Mappe les anciennes catégories (pathologies) vers les nouvelles (types de produits)
-  categories = categories.map(cat => PATHOLOGY_MAPPING[cat] || cat);
+  categories = [...new Set(categories.map(cat => PATHOLOGY_MAPPING[cat] || cat))];
 
   return {
     id: rawProduct.id,
