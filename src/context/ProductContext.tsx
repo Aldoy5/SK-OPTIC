@@ -129,12 +129,21 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
   const updateProduct = async (id: string, updatedProduct: Omit<Product, 'id'>) => {
     try {
+      // Strip 'id' if accidentally included in the payload (e.g. from spreading the full product)
+      const { id: _stripId, ...cleanProduct } = updatedProduct as Product;
       const payload = {
-        ...updatedProduct,
-        category: updatedProduct.categories[0] || PRODUCT_CATEGORIES[0]
+        ...cleanProduct,
+        category: cleanProduct.categories?.[0] || PRODUCT_CATEGORIES[0]
       };
+
+      // Optimistic UI update – reflect the change immediately
+      setProducts(prev =>
+        prev.map(p => p.id === id ? normalizeProduct({ id, ...payload }) : p)
+      );
+
       await updateDoc(doc(db, 'products', id), payload);
     } catch (error) {
+      // Revert optimistic update on failure – onSnapshot will restore correct state
       handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
     }
   };

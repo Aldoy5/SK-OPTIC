@@ -195,10 +195,16 @@ export function Admin() {
     }
     
     try {
+      const { id: _id, ...productData } = currentProduct as Product;
+      const payload = {
+        ...productData,
+        category: productData.categories?.[0] || categories[0]
+      } as Omit<Product, 'id'>;
+
       if (currentProduct.id) {
-        await updateProduct(currentProduct.id, { ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
+        await updateProduct(currentProduct.id, payload);
       } else {
-        await addProduct({ ...currentProduct, category: currentProduct.categories[0] } as Omit<Product, 'id'>);
+        await addProduct(payload);
       }
       handleCloseEdit();
     } catch (error) {
