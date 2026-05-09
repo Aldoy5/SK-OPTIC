@@ -5,6 +5,51 @@ import { db, OperationType, handleFirestoreError } from '../firebase';
 import { Promotion, usePromotions } from '../context/PromotionContext';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 
+const MAX_IMAGE_DIMENSION = 800;
+const IMAGE_QUALITY = 0.7;
+const FIRESTORE_STRING_LIMIT = 1_048_487;
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+
+      // Scale down proportionally if larger than max dimension
+      if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+        const ratio = Math.min(MAX_IMAGE_DIMENSION / width, MAX_IMAGE_DIMENSION / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try JPEG first, fall back to lower quality if still too large
+      let quality = IMAGE_QUALITY;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      while (dataUrl.length > FIRESTORE_STRING_LIMIT && quality > 0.1) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+
+      if (dataUrl.length > FIRESTORE_STRING_LIMIT) {
+        reject(new Error('Image trop volumineuse même après compression. Veuillez utiliser une image plus petite.'));
+        return;
+      }
+      resolve(dataUrl);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Impossible de lire l\'image.')); };
+    img.src = url;
+  });
+}
+
 interface Order {
   id: string;
   customerName: string;
@@ -370,14 +415,15 @@ export function Admin() {
                             <input
                               type="file"
                               accept="image/*"
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    setCurrentProduct({ ...currentProduct, image: reader.result as string });
-                                  };
-                                  reader.readAsDataURL(file);
+                                  try {
+                                    const compressed = await compressImage(file);
+                                    setCurrentProduct({ ...currentProduct, image: compressed });
+                                  } catch (err) {
+                                    alert(err instanceof Error ? err.message : 'Erreur lors du traitement de l\'image.');
+                                  }
                                 }
                               }}
                               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
